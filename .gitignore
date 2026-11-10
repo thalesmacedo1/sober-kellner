@@ -1,0 +1,9 @@
+node_modules/
+out/
+dist/
+*.log
+.env
+.env.*
+# downloaded speech models (large binaries)
+models/
+*.tsbuildinfo

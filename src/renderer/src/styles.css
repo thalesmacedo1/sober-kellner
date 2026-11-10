@@ -1,0 +1,81 @@
+:root {
+  --bg: #14141c;
+  --panel: rgba(22, 22, 32, 0.94);
+  --border: rgba(255, 255, 255, 0.09);
+  --text: #ececf4;
+  --muted: #8d8da3;
+  --accent: #7c5cff;
+  --accent-soft: #b8bcff;
+  --danger: #ff6b81;
+  --ok: #5ee0a0;
+  color-scheme: dark;
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  color: var(--text);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; }
+body { background: var(--bg); }
+
+/* ---------- overlay ---------- */
+html[data-route='overlay'] body { background: transparent; overflow: hidden; }
+
+.overlay { padding: 8px; }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.prompt { display: flex; align-items: center; gap: 12px; padding: 0 18px; height: 56px; }
+
+.orb {
+  width: 16px; height: 16px; flex: none; border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, var(--accent-soft) 0 35%, var(--accent) 36%);
+}
+.orb[data-busy='true'] { animation: pulse 0.9s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(0.7); opacity: 0.6; } }
+
+.prompt input {
+  flex: 1; min-width: 0; background: none; border: none; outline: none;
+  color: var(--text); font: inherit; font-size: 19px;
+}
+.prompt input::placeholder { color: var(--muted); }
+
+.exchange {
+  border-top: 1px solid var(--border);
+  padding: 14px 18px; display: grid; gap: 8px;
+  max-height: 440px; overflow-y: auto;
+}
+.you { color: var(--muted); font-size: 13px; }
+.reply { font-size: 15px; line-height: 1.5; white-space: pre-wrap; }
+
+.hint { padding: 6px 18px 8px; font-size: 11px; color: var(--muted); text-align: right; }
+
+/* ---------- settings ---------- */
+.settings { padding: 24px 28px; display: grid; gap: 18px; }
+.settings h1 { margin: 0; font-size: 20px; font-weight: 600; }
+
+.field { display: grid; gap: 6px; }
+.field > span { font-size: 13px; color: var(--muted); }
+.field small { font-size: 12px; color: var(--muted); }
+.field select, .field input {
+  font: inherit; color: var(--text); background: #1d1d28;
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+}
+.field input[aria-invalid='true'] { border-color: var(--danger); }
+.field select:focus, .field input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+.actions { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
+.status { font-size: 13px; }
+.status[data-kind='saved'] { color: var(--ok); }
+.status[data-kind='hotkey-error'] { color: var(--danger); }
+
+button {
+  font: inherit; color: white; background: var(--accent);
+  border: none; border-radius: 8px; padding: 8px 18px; cursor: pointer;
+}
+button:hover { filter: brightness(1.1); }
