@@ -1,9 +1,18 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, Tray } from 'electron'
+import { join } from 'node:path'
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, Notification, Tray } from 'electron'
 import trayIconPath from '../../resources/tray.png?asset'
+import appIconPath from '../../resources/icon.png?asset'
+import winHelperPath from '../../resources/win-helper.ps1?asset'
 import { createTranslator, resolveLocale, type Translate } from '@shared/i18n'
 import { IPC, type AppState, type SaveSettingsResult, type Settings } from '@shared/ipc'
-import { handleQuery } from './assistant'
+import { Assistant } from './assistant'
+import { createPcService } from './services/pc'
+import { Scheduler, SqliteItemStore } from './services/scheduler'
+import { WinHelper } from './services/winHelper'
 import { loadSettings, persistSettings, sanitize } from './settings'
+import { skills } from './skills'
+import { alertText, describeAlert } from './skills/timers'
+import type { ScheduledItem } from './skills/types'
 import {
   createOverlayWindow,
   createSettingsWindow,
@@ -19,6 +28,23 @@ if (!app.requestSingleInstanceLock()) {
   let tray: Tray | null = null
   let overlay: BrowserWindow | null = null
   let settingsWin: BrowserWindow | null = null
+  let assistant: Assistant
+  let scheduler: Scheduler | null = null
+  const winHelper = new WinHelper(winHelperPath)
+
+  function showAlert(item: ScheduledItem, late: boolean): void {
+    const { title, body } = describeAlert(item)
+    const text = late ? `${body} ${alertText(item.locale, 'late')}` : body
+    new Notification({ title, body: text, icon: appIconPath, urgency: 'critical' }).show()
+  }
+
+  /** Hide the overlay and give the compositor a moment, so it isn't in the screenshot. */
+  async function hideOverlayForCapture(): Promise<void> {
+    if (overlay?.isVisible()) {
+      overlay.hide()
+      await new Promise((r) => setTimeout(r, 300))
+    }
+  }
 
   const state = (): AppState => ({
     settings,
@@ -96,7 +122,7 @@ if (!app.requestSingleInstanceLock()) {
 
   ipcMain.handle(IPC.getState, () => state())
   ipcMain.handle(IPC.saveSettings, (_e, input: Settings) => saveSettings(input))
-  ipcMain.handle(IPC.query, (_e, text: unknown) => handleQuery(String(text ?? ''), t))
+  ipcMain.handle(IPC.query, (_e, text: unknown) => assistant.handle(String(text ?? ''), state().locale))
   ipcMain.on(IPC.hideOverlay, () => overlay?.hide())
   ipcMain.on(IPC.resizeOverlay, (_e, height: unknown) => {
     if (overlay && typeof height === 'number' && Number.isFinite(height)) resizeOverlay(overlay, height)
@@ -105,12 +131,24 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', showOverlay)
   // Tray app: keep running when all windows are closed.
   app.on('window-all-closed', () => {})
-  app.on('will-quit', () => globalShortcut.unregisterAll())
+  app.on('will-quit', () => {
+    globalShortcut.unregisterAll()
+    scheduler?.stop()
+    winHelper.dispose()
+  })
 
   void app.whenReady().then(() => {
-    app.setAppUserModelId('com.sober-kellner.app')
+    // In dev, Windows only shows toasts for an AppUserModelId tied to the running exe.
+    app.setAppUserModelId(app.isPackaged ? 'com.sober-kellner.app' : process.execPath)
     settings = loadSettings()
     applyLocale()
+
+    scheduler = new Scheduler(new SqliteItemStore(join(app.getPath('userData'), 'kellner.db')), showAlert)
+    scheduler.start()
+    const pc = createPcService(winHelper, hideOverlayForCapture)
+    assistant = new Assistant(skills, { scheduler, pc })
+    // Warm up the PowerShell helper and app list so the first command is instant.
+    pc.listApps().catch((err) => console.warn('[kellner] app list unavailable:', err))
 
     tray = new Tray(nativeImage.createFromPath(trayIconPath))
     tray.on('click', toggleOverlay)

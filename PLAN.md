@@ -16,7 +16,7 @@ Mic ──► Wake word ("Hey Kellner")  or  global hotkey
        whisper.cpp  (speech → text, local)
           │
           ▼
-       NLU: NLP.js + chrono-node  (text → intent + details)
+       NLU: phrase templates + own date/time parser  (text → intent + details)
           │        "remind me to call mom tomorrow at 3"
           │        → reminder.create { text: "call mom", when: <tomorrow 15:00> }
           ▼
@@ -35,15 +35,17 @@ Mic ──► Wake word ("Hey Kellner")  or  global hotkey
 | Wake word | Porcupine *or* openWakeWord | See open questions |
 | Voice detection | Silero VAD (onnxruntime-node) | Detects end of speech |
 | Speech-to-text | whisper.cpp, separate background program (`base`/`small` model) | Offline, multilingual |
-| Intent matching | NLP.js | Intent classification + value extraction, no LLM, supports pt/en |
-| Dates and times | chrono-node | "in 10 min", "next friday at 3pm" |
+| Intent matching | Own phrase-template matcher (`src/main/nlu`) | Deterministic and testable, en + pt-BR. Replaced NLP.js in Phase 1. |
+| Dates and times | Own parser (`src/main/nlu/when.ts`) | chrono-node's Portuguese was too weak ("15h", "daqui a…") |
+| System control | Long-lived PowerShell helper (`resources/win-helper.ps1`) | Volume via Core Audio, media keys, lock, Start-menu app list |
 | Text-to-speech | Piper, separate background program | pt_BR and en_US voices |
-| Storage | SQLite (better-sqlite3) | Timers, reminders, notes, settings |
+| Storage | SQLite (built-in `node:sqlite`, no native module) | Timers, reminders, notes |
 | Secrets and tokens | Electron `safeStorage` | Encrypted on disk, never in plain text or the repo |
 
 ## Skills (v1)
 
-Each skill = example phrases per intent + a handler. NLP.js trains on all skills' examples at startup.
+Each skill = phrase templates per intent and language + a handler. Template syntax: `(a|b)` choice,
+`[a]` optional, `{slot}` captured words, e.g. `(set|start) [a] timer (for|of) {duration}`.
 
 - **PC control:** open apps (Start Menu shortcut index), files and folders, volume and mute, media
   play/pause/next, lock, screenshot, sleep
@@ -55,8 +57,8 @@ Each skill = example phrases per intent + a handler. NLP.js trains on all skills
 
 ## Phases
 
-0. **Scaffold:** electron-vite app, tray icon, overlay window, text input box, settings screen
-1. **Brain via text:** NLU + skill router + PC control and timers, plus a test suite of phrases mapped to intents
+0. ✅ **Scaffold:** electron-vite app, tray icon, overlay window, text input box, settings screen
+1. ✅ **Brain via text:** NLU + skill router + PC control and timers, plus a test suite of phrases mapped to intents
 2. **Voice out:** Piper TTS
 3. **Voice in:** hotkey → VAD → whisper
 4. **Wake word:** always listening
@@ -74,7 +76,7 @@ Text input comes first so intent matching can be debugged without speaking every
 
 ## Open questions
 
-1. Language: pt-BR, English, or both?
+1. ~~Language: pt-BR, English, or both?~~ Both (decided).
 2. Wake word engine: Porcupine (easy, free personal key) or openWakeWord (fully open, train in Colab)?
 3. Name / wake word: "Kellner"?
 4. Accounts: Google, Microsoft, or both?

@@ -39,6 +39,7 @@ export function Overlay(): React.JSX.Element {
     setExchange({ query, reply: null })
     const reply = await window.kellner.query(query)
     setExchange((current) => (current?.query === query ? { query, reply } : current))
+    if (reply.dismiss) setTimeout(() => window.kellner.hideOverlay(), 1200)
   }
 
   function onKeyDown(e: KeyboardEvent): void {
@@ -63,7 +64,9 @@ export function Overlay(): React.JSX.Element {
         {exchange && (
           <div className="exchange">
             <div className="you">{exchange.query}</div>
-            <div className="reply">{exchange.reply ? exchange.reply.text : t('overlay.thinking')}</div>
+            <div className="reply" data-kind={exchange.reply?.kind ?? 'pending'}>
+              {exchange.reply ? exchange.reply.text : t('overlay.thinking')}
+            </div>
           </div>
         )}
         <div className="hint">{t('overlay.hint')}</div>

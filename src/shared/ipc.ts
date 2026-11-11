@@ -17,6 +17,11 @@ export interface AppState {
 
 export interface AssistantReply {
   text: string
+  kind: 'ok' | 'unknown' | 'error'
+  /** id of the intent that handled the request, e.g. "timer.set" */
+  intent?: string
+  /** the overlay should hide itself shortly after showing this reply */
+  dismiss?: boolean
 }
 
 export type SaveSettingsResult = { ok: true; state: AppState } | { ok: false; error: 'hotkey' }
