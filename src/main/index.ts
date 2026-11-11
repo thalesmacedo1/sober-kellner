@@ -3,17 +3,19 @@ import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, Notific
 import trayIconPath from '../../resources/tray.png?asset'
 import appIconPath from '../../resources/icon.png?asset'
 import winHelperPath from '../../resources/win-helper.ps1?asset'
-import { createTranslator, resolveLocale, type Translate } from '@shared/i18n'
+import { createTranslator, resolveLocale, type Locale, type Translate } from '@shared/i18n'
 import { IPC, type AppState, type SaveSettingsResult, type Settings } from '@shared/ipc'
 import { Assistant } from './assistant'
 import { createPcService } from './services/pc'
 import { Scheduler, SqliteItemStore } from './services/scheduler'
 import { WinHelper } from './services/winHelper'
+import { Tts } from './speech/tts'
 import { loadSettings, persistSettings, sanitize } from './settings'
 import { skills } from './skills'
 import { alertText, describeAlert } from './skills/timers'
 import type { ScheduledItem } from './skills/types'
 import {
+  createAudioWindow,
   createOverlayWindow,
   createSettingsWindow,
   positionOverlay,
@@ -30,13 +32,31 @@ if (!app.requestSingleInstanceLock()) {
   let settingsWin: BrowserWindow | null = null
   let assistant: Assistant
   let scheduler: Scheduler | null = null
+  let audioWin: BrowserWindow | null = null
+  let tts: Tts | null = null
   const winHelper = new WinHelper(winHelperPath)
 
   function showAlert(item: ScheduledItem, late: boolean): void {
     const { title, body } = describeAlert(item)
     const text = late ? `${body} ${alertText(item.locale, 'late')}` : body
     new Notification({ title, body: text, icon: appIconPath, urgency: 'critical' }).show()
+    speak(item.kind === 'reminder' ? `${title}: ${body}` : body, item.locale)
   }
+
+  function speak(text: string, locale: Locale): void {
+    if (!settings.voice || !tts) return
+    tts.speak(text, locale).catch((err) => console.warn('[kellner] speech failed:', err))
+  }
+
+  /** Sends speech to the hidden audio window, recreating it if it was closed or crashed. */
+  function audioWindow(): BrowserWindow {
+    if (!audioWin || audioWin.isDestroyed()) audioWin = createAudioWindow()
+    return audioWin
+  }
+
+  /** Piper models live in ./models in dev and next to the app resources once packaged. */
+  const modelsDir = (): string =>
+    app.isPackaged ? join(process.resourcesPath, 'models') : join(app.getAppPath(), 'models')
 
   /** Hide the overlay and give the compositor a moment, so it isn't in the screenshot. */
   async function hideOverlayForCapture(): Promise<void> {
@@ -48,7 +68,8 @@ if (!app.requestSingleInstanceLock()) {
 
   const state = (): AppState => ({
     settings,
-    locale: resolveLocale(settings.language, app.getLocale())
+    locale: resolveLocale(settings.language, app.getLocale()),
+    voiceAvailable: tts?.available() ?? false
   })
 
   const applyLocale = (): void => {
@@ -112,6 +133,7 @@ if (!app.requestSingleInstanceLock()) {
       }
     }
     settings = next
+    if (!settings.voice) tts?.stop()
     persistSettings(settings)
     applyLocale()
     buildTrayMenu()
@@ -122,7 +144,14 @@ if (!app.requestSingleInstanceLock()) {
 
   ipcMain.handle(IPC.getState, () => state())
   ipcMain.handle(IPC.saveSettings, (_e, input: Settings) => saveSettings(input))
-  ipcMain.handle(IPC.query, (_e, text: unknown) => assistant.handle(String(text ?? ''), state().locale))
+  ipcMain.handle(IPC.query, async (_e, text: unknown) => {
+    tts?.stop() // a new request interrupts the previous answer
+    const reply = await assistant.handle(String(text ?? ''), state().locale)
+    speak(reply.text, reply.locale)
+    return reply
+  })
+  ipcMain.on(IPC.stopSpeaking, () => tts?.stop())
+  ipcMain.on(IPC.audioState, (_e, speaking: unknown) => overlay?.webContents.send(IPC.speaking, speaking === true))
   ipcMain.on(IPC.hideOverlay, () => overlay?.hide())
   ipcMain.on(IPC.resizeOverlay, (_e, height: unknown) => {
     if (overlay && typeof height === 'number' && Number.isFinite(height)) resizeOverlay(overlay, height)
@@ -135,6 +164,7 @@ if (!app.requestSingleInstanceLock()) {
     globalShortcut.unregisterAll()
     scheduler?.stop()
     winHelper.dispose()
+    tts?.dispose()
   })
 
   void app.whenReady().then(() => {
@@ -142,6 +172,14 @@ if (!app.requestSingleInstanceLock()) {
     app.setAppUserModelId(app.isPackaged ? 'com.sober-kellner.app' : process.execPath)
     settings = loadSettings()
     applyLocale()
+
+    tts = new Tts(modelsDir(), join(app.getPath('temp'), 'sober-kellner-tts'), {
+      play: (wav) => audioWindow().webContents.send(IPC.audioPlay, wav),
+      stop: () => audioWin?.webContents.send(IPC.audioStop)
+    })
+    if (!tts.available()) console.warn(`[kellner] voice files missing in ${modelsDir()} (run "npm run models")`)
+    audioWindow()
+    if (settings.voice) tts.warmUp(state().locale)
 
     scheduler = new Scheduler(new SqliteItemStore(join(app.getPath('userData'), 'kellner.db')), showAlert)
     scheduler.start()

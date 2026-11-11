@@ -2,7 +2,7 @@ import { BrowserWindow, screen } from 'electron'
 import { join } from 'node:path'
 import appIcon from '../../resources/icon.png?asset'
 
-export type Route = 'overlay' | 'settings'
+export type Route = 'overlay' | 'settings' | 'audio'
 
 export const OVERLAY_WIDTH = 680
 export const OVERLAY_MIN_HEIGHT = 72
@@ -67,7 +67,7 @@ export function resizeOverlay(win: BrowserWindow, contentHeight: number): void {
 export function createSettingsWindow(title: string): BrowserWindow {
   const win = new BrowserWindow({
     width: 520,
-    height: 420,
+    height: 480,
     title,
     icon: appIcon,
     show: false,
@@ -80,5 +80,23 @@ export function createSettingsWindow(title: string): BrowserWindow {
   win.setMenu(null)
   win.once('ready-to-show', () => win.show())
   loadRoute(win, 'settings')
+  return win
+}
+
+/**
+ * Never shown: plays synthesized speech with Web Audio (and will capture the mic in Phase 3).
+ * Kept separate from the overlay so audio keeps playing while the overlay is hidden.
+ */
+export function createAudioWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    show: false,
+    skipTaskbar: true,
+    webPreferences: {
+      ...secureWebPreferences,
+      autoplayPolicy: 'no-user-gesture-required',
+      backgroundThrottling: false
+    }
+  })
+  loadRoute(win, 'audio')
   return win
 }

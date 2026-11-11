@@ -8,6 +8,7 @@ export function Overlay(): React.JSX.Element {
   const { state, t } = useAppState()
   const [input, setInput] = useState('')
   const [exchange, setExchange] = useState<Exchange | null>(null)
+  const [speaking, setSpeaking] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -21,6 +22,8 @@ export function Overlay(): React.JSX.Element {
       }),
     []
   )
+
+  useEffect(() => window.kellner.onSpeaking(setSpeaking), [])
 
   // Keep the native window exactly as tall as the panel.
   useLayoutEffect(() => {
@@ -43,14 +46,22 @@ export function Overlay(): React.JSX.Element {
   }
 
   function onKeyDown(e: KeyboardEvent): void {
-    if (e.key === 'Escape') window.kellner.hideOverlay()
+    if (e.key === 'Escape') {
+      window.kellner.stopSpeaking()
+      window.kellner.hideOverlay()
+    }
   }
 
   return (
     <div className="overlay" onKeyDown={onKeyDown}>
       <div className="panel" ref={panelRef}>
         <form className="prompt" onSubmit={submit}>
-          <span className="orb" aria-hidden data-busy={exchange !== null && !exchange.reply} />
+          <span
+            className="orb"
+            aria-hidden
+            data-busy={exchange !== null && !exchange.reply}
+            data-speaking={speaking}
+          />
           <input
             ref={inputRef}
             value={input}

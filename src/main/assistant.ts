@@ -21,7 +21,7 @@ export class Assistant {
 
   async handle(text: string, uiLocale: Locale): Promise<AssistantReply> {
     const match = this.nlu.parse(text, uiLocale)
-    if (!match) return { text: createTranslator(uiLocale)('reply.unknown'), kind: 'unknown' }
+    if (!match) return { text: createTranslator(uiLocale)('reply.unknown'), kind: 'unknown', locale: uiLocale }
 
     try {
       const reply = await match.intent.handle({
@@ -30,10 +30,10 @@ export class Assistant {
         slots: match.slots,
         services: this.services
       })
-      return { ...reply, kind: 'ok', intent: match.intent.id }
+      return { ...reply, kind: 'ok', intent: match.intent.id, locale: match.locale }
     } catch (err) {
       console.error(`[assistant] ${match.intent.id} failed`, err)
-      return { text: createTranslator(match.locale)('reply.error'), kind: 'error', intent: match.intent.id }
+      return { text: createTranslator(match.locale)('reply.error'), kind: 'error', intent: match.intent.id, locale: match.locale }
     }
   }
 }

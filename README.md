@@ -9,6 +9,7 @@ Requires Node.js 22+.
 
 ```sh
 npm install
+npm run models     # one-time: downloads Piper + pt-BR/en voices (~150 MB) into ./models
 npm run dev        # start with hot reload
 npm test           # phrase → intent table, date/time parsing, skills, scheduler
 npm run typecheck
@@ -24,7 +25,9 @@ npm run build
 
 - **Ctrl+Shift+Space** (configurable) toggles the assistant overlay. Esc or clicking away hides it.
 - The tray icon menu has Open / Settings / Quit. Clicking the icon toggles the overlay.
-- Settings (language and hotkey) are stored in `%APPDATA%/sober-kellner/settings.json`.
+- Replies and timer/reminder alerts are spoken with local Piper voices (pt-BR: faber, en: lessac),
+  in the language you asked in. Esc cuts the speech off; Settings has an on/off switch.
+- Settings (language, hotkey, voice) are stored in `%APPDATA%/sober-kellner/settings.json`.
 
 ## Layout
 
@@ -34,10 +37,13 @@ src/
     nlu/        tokenizer, template matcher, numbers, durations, date/time parser
     skills/     system (time/date/help), pc (apps, folders, volume, media, lock, screenshot), timers
     services/   scheduler (SQLite), Windows helper client, PC service
+    speech/     Piper TTS (long-lived process per voice), reply → speakable text
     assistant.ts  text → NLU → skill → reply
   preload/    Secure bridge exposing window.kellner to the UI
-  renderer/   React UI: overlay (#/overlay) and settings (#/settings)
+  renderer/   React UI: overlay (#/overlay), settings (#/settings), hidden audio player (#/audio)
   shared/     Code used by both sides: i18n strings, IPC contract
 resources/    Icons, win-helper.ps1
+scripts/      fetch-models.mjs
+models/       Downloaded speech models (git-ignored)
 tests/        Vitest suites
 ```

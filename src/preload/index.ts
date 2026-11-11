@@ -14,7 +14,12 @@ const api: KellnerApi = {
   query: (text) => ipcRenderer.invoke(IPC.query, text),
   hideOverlay: () => ipcRenderer.send(IPC.hideOverlay),
   resizeOverlay: (height) => ipcRenderer.send(IPC.resizeOverlay, height),
-  onOverlayShown: (listener) => subscribe<[]>(IPC.overlayShown, listener)
+  onOverlayShown: (listener) => subscribe<[]>(IPC.overlayShown, listener),
+  stopSpeaking: () => ipcRenderer.send(IPC.stopSpeaking),
+  onSpeaking: (listener) => subscribe<[boolean]>(IPC.speaking, listener),
+  onAudioPlay: (listener) => subscribe<[Uint8Array]>(IPC.audioPlay, listener),
+  onAudioStop: (listener) => subscribe<[]>(IPC.audioStop, listener),
+  reportSpeaking: (speaking) => ipcRenderer.send(IPC.audioState, speaking)
 }
 
 contextBridge.exposeInMainWorld('kellner', api)

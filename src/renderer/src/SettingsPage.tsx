@@ -67,6 +67,18 @@ export function SettingsPage(): React.JSX.Element | null {
         <small>{t('settings.hotkey.help')}</small>
       </label>
 
+      <label className="field checkbox">
+        <input
+          type="checkbox"
+          checked={draft.voice}
+          onChange={(e) => update({ voice: e.target.checked })}
+        />
+        <span>{t('settings.voice')}</span>
+      </label>
+      {draft.voice && state && !state.voiceAvailable && (
+        <small className="warning">{t('settings.voice.missing')}</small>
+      )}
+
       <div className="actions">
         <span className="status" role="status" data-kind={status}>
           {status === 'saved' && t('settings.saved')}

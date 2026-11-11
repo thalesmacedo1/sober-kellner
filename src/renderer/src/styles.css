@@ -37,6 +37,8 @@ html[data-route='overlay'] body { background: transparent; overflow: hidden; }
   background: radial-gradient(circle at 50% 50%, var(--accent-soft) 0 35%, var(--accent) 36%);
 }
 .orb[data-busy='true'] { animation: pulse 0.9s ease-in-out infinite; }
+.orb[data-speaking='true'] { animation: speak 0.5s ease-in-out infinite alternate; }
+@keyframes speak { to { transform: scale(1.35); box-shadow: 0 0 12px var(--accent); } }
 @keyframes pulse { 50% { transform: scale(0.7); opacity: 0.6; } }
 
 .prompt input {
@@ -71,6 +73,10 @@ html[data-route='overlay'] body { background: transparent; overflow: hidden; }
 }
 .field input[aria-invalid='true'] { border-color: var(--danger); }
 .field select:focus, .field input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.field.checkbox { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.field.checkbox input { width: 16px; height: 16px; padding: 0; accent-color: var(--accent); }
+.field.checkbox > span { font-size: 14px; color: var(--text); }
+.warning { margin-top: -10px; font-size: 12px; color: var(--danger); }
 
 .actions { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
 .status { font-size: 13px; }

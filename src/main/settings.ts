@@ -4,7 +4,6 @@ import { join, dirname } from 'node:path'
 import { LOCALES, type LanguageSetting } from '@shared/i18n'
 import { DEFAULT_SETTINGS, type Settings } from '@shared/ipc'
 
-// Plain JSON for now; moves to SQLite alongside timers/reminders in Phase 1.
 const file = (): string => join(app.getPath('userData'), 'settings.json')
 
 function isLanguage(value: unknown): value is LanguageSetting {
@@ -17,7 +16,8 @@ export function sanitize(input: Partial<Settings> | undefined): Settings {
     hotkey:
       typeof input?.hotkey === 'string' && input.hotkey.trim()
         ? input.hotkey.trim()
-        : DEFAULT_SETTINGS.hotkey
+        : DEFAULT_SETTINGS.hotkey,
+    voice: typeof input?.voice === 'boolean' ? input.voice : DEFAULT_SETTINGS.voice
   }
 }
 

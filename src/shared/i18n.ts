@@ -17,6 +17,8 @@ const en = {
   'settings.language.auto': 'Automatic (system)',
   'settings.hotkey': 'Global hotkey',
   'settings.hotkey.help': 'Electron accelerator format, e.g. CommandOrControl+Shift+Space',
+  'settings.voice': 'Speak replies out loud',
+  'settings.voice.missing': 'Voice files not found. Run “npm run models” to download them.',
   'settings.save': 'Save',
   'settings.saved': 'Saved',
   'settings.error.hotkey': 'Couldn’t register this hotkey — it may be in use by another app.'
@@ -39,6 +41,8 @@ const ptBR: Record<MessageKey, string> = {
   'settings.language.auto': 'Automático (sistema)',
   'settings.hotkey': 'Atalho global',
   'settings.hotkey.help': 'Formato de acelerador do Electron, ex.: CommandOrControl+Shift+Space',
+  'settings.voice': 'Falar as respostas em voz alta',
+  'settings.voice.missing': 'Arquivos de voz não encontrados. Rode “npm run models” para baixá-los.',
   'settings.save': 'Salvar',
   'settings.saved': 'Salvo',
   'settings.error.hotkey': 'Não foi possível registrar este atalho — talvez outro app já o use.'

@@ -38,7 +38,7 @@ Mic ──► Wake word ("Hey Kellner")  or  global hotkey
 | Intent matching | Own phrase-template matcher (`src/main/nlu`) | Deterministic and testable, en + pt-BR. Replaced NLP.js in Phase 1. |
 | Dates and times | Own parser (`src/main/nlu/when.ts`) | chrono-node's Portuguese was too weak ("15h", "daqui a…") |
 | System control | Long-lived PowerShell helper (`resources/win-helper.ps1`) | Volume via Core Audio, media keys, lock, Start-menu app list |
-| Text-to-speech | Piper, separate background program | pt_BR and en_US voices |
+| Text-to-speech | Piper 2023.11.14-2, long-lived process per voice | `pt_BR-faber-medium`, `en_US-lessac-medium`; `npm run models` downloads them |
 | Storage | SQLite (built-in `node:sqlite`, no native module) | Timers, reminders, notes |
 | Secrets and tokens | Electron `safeStorage` | Encrypted on disk, never in plain text or the repo |
 
@@ -59,7 +59,7 @@ Each skill = phrase templates per intent and language + a handler. Template synt
 
 0. ✅ **Scaffold:** electron-vite app, tray icon, overlay window, text input box, settings screen
 1. ✅ **Brain via text:** NLU + skill router + PC control and timers, plus a test suite of phrases mapped to intents
-2. **Voice out:** Piper TTS
+2. ✅ **Voice out:** Piper TTS (one long-lived `--json-input` process per voice, played in a hidden window)
 3. **Voice in:** hotkey → VAD → whisper
 4. **Wake word:** always listening
 5. **Answers skills**
